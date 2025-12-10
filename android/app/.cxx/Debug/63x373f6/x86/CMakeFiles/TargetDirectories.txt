@@ -1,0 +1,2 @@
+/Volumes/Externo/projetos/zurc/pixel_adventure-master/android/app/.cxx/Debug/63x373f6/x86/CMakeFiles/edit_cache.dir
+/Volumes/Externo/projetos/zurc/pixel_adventure-master/android/app/.cxx/Debug/63x373f6/x86/CMakeFiles/rebuild_cache.dir

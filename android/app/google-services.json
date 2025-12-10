@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "1041243893110",
+    "firebase_url": "https://game-41d14-default-rtdb.firebaseio.com",
+    "project_id": "game-41d14",
+    "storage_bucket": "game-41d14.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1041243893110:android:c552e316535c8092b45e57",
+        "android_client_info": {
+          "package_name": "com.example.pixel_adventure"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD45u8F3FO8sst_314aaWjJVdG9TQvn1io"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
