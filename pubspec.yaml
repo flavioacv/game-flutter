@@ -39,7 +39,7 @@ dependencies:
   flame_audio: ^2.10.7
   firebase_core: ^3.10.1
   firebase_database: ^11.3.1
-  google_fonts: ^6.2.1
+  google_fonts: ^8.1.0
   flutter_spinkit: ^5.2.1
   flutter_modular: ^6.3.4
   shared_preferences: ^2.5.1
@@ -84,6 +84,7 @@ flutter:
     - assets/images/Items/Fruits/
     - assets/images/Main Characters/
     - assets/images/Main Characters/Mask Dude/
+    - assets/images/Main Characters/Ninja Dude/
     - assets/images/Main Characters/Ninja Frog/
     - assets/images/Main Characters/Pink Man/
     - assets/images/Main Characters/Virtual Guy/

@@ -64,34 +64,53 @@ class MultiplayerService {
     String hostNickname,
     int maxPlayers,
   ) async {
-    // Generate new room ID
-    final newRoomRef = _salasRef.push();
-    final roomId = newRoomRef.key!;
+    try {
+      print('[MultiplayerService] Criando sala "$roomName" no Firebase...');
 
-    // Create room info
-    final roomInfo = RoomInfo(
-      id: roomId,
-      name: roomName,
-      hostId: hostId,
-      maxPlayers: maxPlayers,
-      currentPlayers: 0,
-      createdAt: DateTime.now(),
-      status: 'waiting',
-    );
+      // Generate new room ID
+      final newRoomRef = _salasRef.push();
+      final roomId = newRoomRef.key!;
 
-    // Set room data
-    await newRoomRef.child('info').set(roomInfo.toMap());
-    await newRoomRef.update({'time': 30.0, 'mapa': 0});
+      // Create room info
+      final roomInfo = RoomInfo(
+        id: roomId,
+        name: roomName,
+        hostId: hostId,
+        maxPlayers: maxPlayers,
+        currentPlayers: 0,
+        createdAt: DateTime.now(),
+        status: 'waiting',
+      );
 
-    // Set current room
-    currentRoomId = roomId;
-    _roomRef = newRoomRef;
+      // Set room data with timeout to avoid infinite loading
+      await newRoomRef
+          .child('info')
+          .set(roomInfo.toMap())
+          .timeout(const Duration(seconds: 10), onTimeout: () {
+        throw TimeoutException(
+            'Tempo esgotado ao criar sala. Verifique a conexão com o Firebase.');
+      });
+      await newRoomRef.update({'time': 30.0, 'mapa': 0}).timeout(
+          const Duration(seconds: 10), onTimeout: () {
+        throw TimeoutException(
+            'Tempo esgotado ao configurar sala. Verifique a conexão com o Firebase.');
+      });
 
-    return roomId;
+      // Set current room
+      currentRoomId = roomId;
+      _roomRef = newRoomRef;
+
+      print('[MultiplayerService] Sala criada com sucesso: $roomId');
+      return roomId;
+    } catch (e) {
+      print('[MultiplayerService] Erro ao criar sala: $e');
+      rethrow;
+    }
   }
 
   /// Gets a stream of all available rooms
   Stream<List<RoomInfo>> getRoomsList() {
+    print('[MultiplayerService] Carregando lista de salas...');
     return _salasRef.onValue.map((event) {
       final List<RoomInfo> rooms = [];
       if (event.snapshot.exists) {
@@ -102,6 +121,7 @@ class MultiplayerService {
           }
         });
       }
+      print('[MultiplayerService] ${rooms.length} salas encontradas.');
       return rooms;
     });
   }
@@ -131,13 +151,21 @@ class MultiplayerService {
     playerData['joinedAt'] = ServerValue.timestamp;
 
     final playerRef = _roomRef!.child('jogadores/$idPlayer');
-    await playerRef.set(playerData);
+    await playerRef.set(playerData).timeout(const Duration(seconds: 10),
+        onTimeout: () {
+      throw TimeoutException(
+          'Tempo esgotado ao entrar na sala. Verifique a conexão com o Firebase.');
+    });
 
     // Auto-remove on disconnect
     await playerRef.onDisconnect().remove();
 
     // Update player count
-    await _updatePlayerCount();
+    await _updatePlayerCount().timeout(const Duration(seconds: 10),
+        onTimeout: () {
+      throw TimeoutException(
+          'Tempo esgotado ao atualizar contagem de jogadores.');
+    });
 
     // Auto-decrement on disconnect
     _roomRef!.child('jogadores/$idPlayer').onDisconnect().remove().then((_) {

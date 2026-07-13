@@ -50,21 +50,18 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD45u8F3FO8sst_314aaWjJVdG9TQvn1io',
-    appId: '1:1041243893110:android:c552e316535c8092b45e57',
-    messagingSenderId: '1041243893110',
-    projectId: 'game-41d14',
-    databaseURL: 'https://game-41d14-default-rtdb.firebaseio.com',
-    storageBucket: 'game-41d14.appspot.com',
+    apiKey: 'AIzaSyB6h567pyuk8FH3_8H5fRt2uhrBvJX_W-I',
+    appId: '1:539045101520:android:dfa04586ebb4ce8d3e83d5',
+    messagingSenderId: '539045101520',
+    projectId: 'game-1-eaf06',
+    storageBucket: 'game-1-eaf06.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDBkVLBxEEF_KiZwFFky6xMB9tdSZD2yeE',
-    appId: '1:1041243893110:ios:9752abab2fd96442b45e57',
-    messagingSenderId: '1041243893110',
-    projectId: 'game-41d14',
-    databaseURL: 'https://game-41d14-default-rtdb.firebaseio.com',
-    storageBucket: 'game-41d14.appspot.com',
+    apiKey: 'AIzaSyBR2MRBJfQqZK6NU8MwkzVJG5WwJCk1_lI',
+    appId: '1:539045101520:ios:26268e8b235398533e83d5',
+    messagingSenderId: '539045101520',
+    projectId: 'game-1-eaf06',
+    storageBucket: 'game-1-eaf06.firebasestorage.app',
     iosBundleId: 'com.example.pixelAdventure',
   );
 }
