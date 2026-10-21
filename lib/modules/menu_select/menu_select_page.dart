@@ -23,6 +23,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
     'Virtual Guy',
     'Ninja Dude',
     'Knight Dude',
+    'Skull Dude',
 
   ];
   final ValueNotifier<int> selectedCharacterIndex = ValueNotifier<int>(0);
