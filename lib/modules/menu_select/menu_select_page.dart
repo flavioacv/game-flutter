@@ -24,7 +24,10 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
     'Ninja Dude',
     'Knight Dude',
     'Skull Dude',
-
+    'Mage Dude',
+    'Mice Dude',
+    'Shark Dude',
+    'Death Dude',
   ];
   final ValueNotifier<int> selectedCharacterIndex = ValueNotifier<int>(0);
   late final List<CharacterAnimationGame> _characterGames;
