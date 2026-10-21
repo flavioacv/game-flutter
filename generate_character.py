@@ -1,357 +1,211 @@
 #!/usr/bin/env python3
-"""Gera um personagem pixel art 32x32 no estilo do Mask Dude."""
+"""
+Gerador de personagens no padrão oficial Pixel Adventure (Pixel Frog) 32x32.
+Gera todos os spritesheets com anatomia, paleta, contorno #211f30 e timing exatos.
+"""
 
 import os
 from PIL import Image
 
-# Paleta (RGBA)
-T  = (0, 0, 0, 0)           # transparente
-SK = (255, 204, 170, 255)   # pele
-C1 = (45, 28, 80, 255)      # capuz escuro
-C2 = (70, 45, 120, 255)     # capuz medio
-C3 = (95, 65, 150, 255)     # capuz claro / dobra
-R1 = (60, 40, 90, 255)      # roupa escura
-R2 = (85, 60, 125, 255)     # roupa media
-R3 = (110, 85, 155, 255)    # roupa clara / highlight
-M  = (25, 25, 40, 255)      # mascara
-E  = (0, 255, 255, 255)     # brilho ciano olhos
-W  = (230, 245, 255, 255)   # branco olhos
-B  = (200, 50, 50, 255)     # faixa vermelha
-B2 = (150, 30, 30, 255)     # faixa sombra
-K  = (20, 20, 20, 255)      # botas/luvas
-G  = (120, 120, 130, 255)   # cinza parede
+# Cores oficiais Pixel Adventure
+OUTLINE  = (33, 31, 48, 255)      # #211f30 - Contorno universal escuro
+WHITE    = (255, 255, 255, 255)   # #ffffff - Brilho dos olhos e highlights
+TRANSP   = (0, 0, 0, 0)
 
+# Headband / Faixa Ninja Vermelha (mesma paleta do Ninja Frog)
+RED_HI   = (228, 74, 74, 255)     # #e44a4a
+RED_MID  = (204, 48, 72, 255)     # #cc3048
+RED_SHD  = (156, 27, 77, 255)     # #9c1b4d
 
-def new_frame():
-    return [[T for _ in range(32)] for _ in range(32)]
+# Traje Shinobi / Ninja (grafite azulado com gradiente suave)
+SUIT_HI  = (94, 90, 122, 255)     # #5e5a7a highlight sutil
+SUIT_MID = (55, 51, 77, 255)      # #37334d cor base
+SUIT_SHD = (37, 34, 54, 255)      # #252236 sombra
+SUIT_DRK = (25, 23, 36, 255)      # #191724 sombra profunda
 
+# Ataduras brancas/cinzas nos pulsos e canelas
+WRAP_MID = (200, 210, 220, 255)
 
-def put(pixels, x, y, color):
-    if 0 <= x < 32 and 0 <= y < 32:
-        pixels[y][x] = color
+# Pele na fenda dos olhos e mãos
+SKIN_HI  = (251, 223, 177, 255)   # #fbdfb1
+SKIN_MID = (242, 188, 126, 255)   # #f2bc7e
 
+# Protetor metálico da testa
+MET_HI   = (235, 240, 250, 255)
+MET_MID  = (170, 180, 200, 255)
+MET_SHD  = (110, 120, 140, 255)
 
-def rect(pixels, x, y, w, h, color):
-    for yy in range(y, y + h):
-        for xx in range(x, x + w):
-            put(pixels, xx, yy, color)
+# Cores do visor VR do modelo base
+VR_COLORS = {
+    (228, 201, 151), (207, 158, 110), (185, 110, 84), (161, 71, 68)
+}
 
+def render_ninja_frame(src_frame):
+    """Renderiza um frame individual de 32x32 com o padrão Ninja Dude."""
+    w, h = src_frame.size
+    dst = Image.new('RGBA', (w, h), TRANSP)
+    src = src_frame.load()
+    out = dst.load()
 
-def hline(pixels, x, y, w, color):
-    for xx in range(x, x + w):
-        put(pixels, xx, y, color)
+    # Detectar bounding box do visor (rosto)
+    vr_pixels = []
+    for y in range(h):
+        for x in range(w):
+            p = src[x, y]
+            if p[3] > 0 and p[:3] in VR_COLORS:
+                vr_pixels.append((x, y))
 
-
-def vline(pixels, x, y, h, color):
-    for yy in range(y, y + h):
-        put(pixels, x, yy, color)
-
-
-def mirror_x(pixels):
-    return [row[::-1] for row in pixels]
-
-
-def to_image(pixels):
-    img = Image.new('RGBA', (32, 32), T)
-    data = [pixels[y][x] for y in range(32) for x in range(32)]
-    img.putdata(data)
-    return img
-
-
-def join_frames(frames):
-    w = len(frames) * 32
-    img = Image.new('RGBA', (w, 32), T)
-    for i, fr in enumerate(frames):
-        img.paste(to_image(fr), (i * 32, 0))
-    return img
-
-
-def build_sheet(frames, name, folder):
-    img = join_frames(frames)
-    img.save(os.path.join(folder, f"{name} (32x32).png"))
-    left = [mirror_x(fr) for fr in frames]
-    join_frames(left).save(os.path.join(folder, f"{name}-left (32x32).png"))
-
-
-# ============================================================================
-# Desenho do personagem
-# ============================================================================
-def draw_character(pixels,
-                   head_y=0,
-                   body_y=0,
-                   left_leg=(0, 0), right_leg=(0, 0),
-                   left_arm=(0, 0), right_arm=(0, 0),
-                   mask_offset=0,
-                   lean=0,
-                   eyes_closed=False,
-                   show_wall=False):
-    """Desenha o ninja em pixels 32x32."""
-    cx = 16
-    base_y = 28 + body_y
-
-    # Pernas
-    llx, lly = left_leg
-    rlx, rly = right_leg
-    # Coxa/calca
-    rect(pixels, cx - 4 + llx, base_y - 10 + lly, 3, 6, R2)
-    rect(pixels, cx + 1 + rlx, base_y - 10 + rly, 3, 6, R2)
-    # Sombra nas coxas
-    vline(pixels, cx - 4 + llx, base_y - 10 + lly, 6, R1)
-    vline(pixels, cx + 3 + rlx, base_y - 10 + rly, 6, R1)
-    # Botas
-    rect(pixels, cx - 4 + llx, base_y - 5 + lly, 3, 5, K)
-    rect(pixels, cx + 1 + rlx, base_y - 5 + rly, 3, 5, K)
-    # Detalhe bota
-    hline(pixels, cx - 4 + llx, base_y - 3 + lly, 3, G)
-    hline(pixels, cx + 1 + rlx, base_y - 3 + rly, 3, G)
-
-    # Corpo (quimono) 10x12
-    body_top = base_y - 21 + body_y
-    rect(pixels, cx - 5, body_top, 10, 13, R2)
-    # Lateral sombra
-    vline(pixels, cx - 5, body_top, 13, R1)
-    vline(pixels, cx + 4, body_top, 13, R1)
-    # Abertura do quimono (V)
-    put(pixels, cx - 1, body_top + 2, M)
-    put(pixels, cx, body_top + 2, M)
-    put(pixels, cx - 1, body_top + 3, M)
-    put(pixels, cx, body_top + 3, M)
-    put(pixels, cx - 1, body_top + 4, M)
-    put(pixels, cx, body_top + 4, M)
-    # Faixa vermelha
-    hline(pixels, cx - 5, body_top + 7, 10, B)
-    hline(pixels, cx - 5, body_top + 8, 10, B2)
-    # No na faixa
-    rect(pixels, cx - 2, body_top + 7, 4, 2, B)
-    put(pixels, cx - 1, body_top + 9, B)
-    put(pixels, cx, body_top + 9, B)
-
-    # Pescoco
-    rect(pixels, cx - 2, body_top - 2, 4, 2, SK)
-    hline(pixels, cx - 2, body_top - 2, 4, M)  # gola mascara
-
-    # Cabeca/capuz
-    hx = cx - 6 + lean
-    hy = body_top - 13 + head_y
-    # Forma base do capuz
-    rect(pixels, hx, hy, 12, 11, C1)
-    # Topo arredondado
-    hline(pixels, hx + 1, hy, 10, C1)
-    hline(pixels, hx + 3, hy - 1, 6, C1)
-    # Orelhas/pontas do capuz
-    put(pixels, hx - 1, hy + 5, C2)
-    put(pixels, hx - 2, hy + 6, C2)
-    put(pixels, hx - 2, hy + 7, C2)
-    put(pixels, hx + 12, hy + 5, C2)
-    put(pixels, hx + 13, hy + 6, C2)
-    put(pixels, hx + 13, hy + 7, C2)
-    # Dobra clara no capuz
-    hline(pixels, hx + 1, hy + 1, 10, C2)
-    vline(pixels, hx + 1, hy + 1, 9, C2)
-    vline(pixels, hx + 10, hy + 1, 9, C2)
-
-    # Rosto / mascara
-    face_y = hy + 4
-    rect(pixels, hx + 2, face_y, 8, 5, M)
-    # Olhos
-    eye_y = face_y + 2
-    if not eyes_closed:
-        put(pixels, hx + 3 + mask_offset, eye_y, W)
-        put(pixels, hx + 7 + mask_offset, eye_y, W)
-        put(pixels, hx + 3 + mask_offset, eye_y - 1, E)
-        put(pixels, hx + 7 + mask_offset, eye_y - 1, E)
+    if vr_pixels:
+        min_x = min(x for x, y in vr_pixels)
+        max_x = max(x for x, y in vr_pixels)
+        min_y = min(y for x, y in vr_pixels)
+        max_y = max(y for x, y in vr_pixels)
+        vr_h = max_y - min_y + 1
+        vr_w = max_x - min_x + 1
     else:
-        hline(pixels, hx + 3 + mask_offset, eye_y, 2, W)
-        hline(pixels, hx + 7 + mask_offset, eye_y, 2, W)
+        min_x, max_x, min_y, max_y, vr_h, vr_w = 0, 0, 0, 0, 0, 0
 
-    # Bracos
-    lax, lay = left_arm
-    rax, ray = right_arm
-    # Manga esquerda
-    rect(pixels, cx - 8 + lax, body_top + 1 + lay, 3, 7, R2)
-    vline(pixels, cx - 8 + lax, body_top + 1 + lay, 7, R1)
-    # Luva esquerda
-    rect(pixels, cx - 8 + lax, body_top + 7 + lay, 3, 3, K)
-    # Manga direita
-    rect(pixels, cx + 5 + rax, body_top + 1 + ray, 3, 7, R2)
-    vline(pixels, cx + 7 + rax, body_top + 1 + ray, 7, R1)
-    # Luva direita
-    rect(pixels, cx + 5 + rax, body_top + 7 + ray, 3, 3, K)
+    for y in range(h):
+        for x in range(w):
+            p = src[x, y]
+            if p[3] == 0:
+                continue
 
-    # Indicacao de parede (wall jump)
-    if show_wall:
-        vline(pixels, 30, 6, 20, G)
-        put(pixels, 29, 8, G)
-        put(pixels, 29, 20, G)
+            # Preserva contorno escuro universal #211f30
+            if p[:3] == (33, 31, 48):
+                out[x, y] = OUTLINE
+                continue
 
+            # Mãos (pele)
+            if p[:3] in [(242, 188, 126), (251, 223, 177)] and y >= (min_y + vr_h if vr_pixels else 20):
+                out[x, y] = SKIN_MID if p[:3] == (242, 188, 126) else SKIN_HI
+                continue
 
-# ============================================================================
-# Animacoes
-# ============================================================================
-def idle_frames():
-    frames = []
-    # 11 frames: respiracao suave e piscar ocasional
-    head_cycle = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0]
-    arm_cycle_l = [0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0]
-    arm_cycle_r = [0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0]
-    for i in range(11):
-        f = new_frame()
-        draw_character(f,
-                       head_y=head_cycle[i],
-                       body_y=head_cycle[i] // 2,
-                       left_arm=(0, arm_cycle_l[i]),
-                       right_arm=(0, arm_cycle_r[i]),
-                       eyes_closed=(i == 9))
-        frames.append(f)
-    return frames
+            # Região do Rosto (Bandana, Fenda dos Olhos, Máscara)
+            if p[:3] in VR_COLORS:
+                rel_y = (y - min_y) / max(1, vr_h - 1)
+                rel_x = (x - min_x) / max(1, vr_w - 1)
 
+                # 1. Bandana Ninja na testa (rel_y <= 0.28)
+                if rel_y <= 0.28:
+                    if 0.35 <= rel_x <= 0.65:
+                        out[x, y] = MET_HI if rel_y <= 0.1 else (MET_MID if rel_y <= 0.2 else MET_SHD)
+                    else:
+                        out[x, y] = RED_HI if rel_y <= 0.1 else (RED_MID if rel_y <= 0.2 else RED_SHD)
+                    continue
 
-def run_frames():
-    frames = []
-    # 12 frames de ciclo de corrida
-    cycle = [
-        # body_y, head_y, llx, lly, rlx, rly, lax, lay, rax, ray, lean
-        (0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0),
-        (0, -1, 1, -1, -1, 0, 0, 1, 0, -1, 1),
-        (-1, -2, 2, -2, -2, 1, 0, 2, 0, -2, 1),
-        (0, -1, 1, -1, -1, 0, 0, 1, 0, -1, 0),
-        (0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0),
-        (0, -1, -1, 0, 1, -1, 0, -1, 0, 1, 1),
-        (-1, -2, -2, 1, 2, -2, 0, -2, 0, 2, 1),
-        (0, -1, -1, 0, 1, -1, 0, -1, 0, 1, 0),
-        (0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0),
-        (0, -1, 1, -2, -1, 1, 0, 1, 0, -1, 1),
-        (-1, -2, 2, -3, -2, 2, 0, 2, 0, -2, 1),
-        (0, -1, 1, -1, -1, 0, 0, 1, 0, -1, 0),
+                # 2. Fenda dos olhos (rel_y entre 0.29 e 0.50)
+                if 0.29 <= rel_y <= 0.50:
+                    if rel_x <= 0.12 or rel_x >= 0.88:
+                        out[x, y] = SUIT_SHD if rel_x <= 0.12 else SUIT_MID
+                    else:
+                        # Olhos expressivos ninja
+                        is_eye1 = 0.24 <= rel_x <= 0.40
+                        is_eye2 = 0.60 <= rel_x <= 0.76
+                        if is_eye1 or is_eye2:
+                            if rel_y <= 0.38 and ((is_eye1 and rel_x <= 0.32) or (is_eye2 and rel_x <= 0.68)):
+                                out[x, y] = WHITE
+                            else:
+                                out[x, y] = OUTLINE
+                        else:
+                            out[x, y] = SKIN_HI if rel_y <= 0.40 else SKIN_MID
+                    continue
+
+                # 3. Máscara Ninja (rel_y >= 0.51)
+                if rel_y >= 0.51:
+                    if rel_x <= 0.14 or rel_x >= 0.86:
+                        out[x, y] = SUIT_SHD if rel_x <= 0.14 else SUIT_MID
+                    else:
+                        if rel_y <= 0.58:
+                            out[x, y] = SUIT_HI
+                        elif 0.46 <= rel_x <= 0.54:
+                            out[x, y] = SUIT_SHD  # costura central
+                        else:
+                            out[x, y] = SUIT_MID
+                    continue
+
+            # Faixa na cintura (obi vermelha)
+            if p[:3] == (255, 255, 255) and y >= 23:
+                out[x, y] = RED_HI if x % 2 == 0 else RED_MID
+                continue
+
+            # Traje Shinobi (capuz, tronco, calça, sapatos tabi)
+            if p[:3] in [(172, 247, 250), (255, 255, 255)]:
+                out[x, y] = SUIT_HI
+            elif p[:3] == (108, 217, 241):
+                out[x, y] = SUIT_MID
+            elif p[:3] == (47, 172, 218):
+                out[x, y] = SUIT_SHD
+            else:
+                out[x, y] = SUIT_DRK
+
+    # Adicionar o nó da bandana vermelha na lateral traseira quando houver espaço (x=5..7)
+    if vr_pixels and min_y >= 8:
+        knot_base_y = min_y + 1
+        knot_coords = [
+            (min_x - 3, knot_base_y, OUTLINE), (min_x - 2, knot_base_y, RED_HI), (min_x - 1, knot_base_y, OUTLINE),
+            (min_x - 4, knot_base_y + 1, OUTLINE), (min_x - 3, knot_base_y + 1, RED_MID), (min_x - 2, knot_base_y + 1, RED_MID),
+            (min_x - 4, knot_base_y + 2, OUTLINE), (min_x - 3, knot_base_y + 2, RED_SHD), (min_x - 2, knot_base_y + 2, OUTLINE),
+            (min_x - 3, knot_base_y + 3, OUTLINE)
+        ]
+        for kx, ky, col in knot_coords:
+            if 0 <= kx < w and 0 <= ky < h and out[kx, ky][3] == 0:
+                out[kx, ky] = col
+
+    return dst
+
+def generate_all():
+    base_src_dir = "assets/images/Main Characters/Virtual Guy"
+    target_dir = "assets/images/Main Characters/Ninja Dude"
+    os.makedirs(target_dir, exist_ok=True)
+
+    animations = [
+        "Idle (32x32).png",
+        "Run (32x32).png",
+        "Jump (32x32).png",
+        "Fall (32x32).png",
+        "Hit (32x32).png",
+        "Double Jump (32x32).png",
+        "Wall Jump (32x32).png",
     ]
-    for vals in cycle:
-        f = new_frame()
-        draw_character(f,
-                       body_y=vals[0],
-                       head_y=vals[1],
-                       left_leg=(vals[2], vals[3]),
-                       right_leg=(vals[4], vals[5]),
-                       left_arm=(vals[6], vals[7]),
-                       right_arm=(vals[8], vals[9]),
-                       lean=vals[10])
-        frames.append(f)
-    return frames
 
+    for anim_name in animations:
+        src_path = os.path.join(base_src_dir, anim_name)
+        if not os.path.exists(src_path):
+            print(f"Aviso: {src_path} não encontrado, pulando...")
+            continue
 
-def jump_frame():
-    f = new_frame()
-    draw_character(f,
-                   head_y=-2,
-                   body_y=-2,
-                   left_leg=(-1, -3),
-                   right_leg=(2, -1),
-                   left_arm=(0, -4),
-                   right_arm=(0, -4))
-    return [f]
+        src_sheet = Image.open(src_path)
+        sheet_w, sheet_h = src_sheet.size
+        frame_count = sheet_w // 32
 
+        # Gerar sheet voltado para direita
+        dst_sheet = Image.new('RGBA', (sheet_w, sheet_h), TRANSP)
+        # Gerar sheet voltado para esquerda
+        dst_sheet_left = Image.new('RGBA', (sheet_w, sheet_h), TRANSP)
 
-def fall_frame():
-    f = new_frame()
-    draw_character(f,
-                   head_y=-1,
-                   body_y=-1,
-                   left_leg=(-2, 1),
-                   right_leg=(2, 1),
-                   left_arm=(0, 1),
-                   right_arm=(0, 1))
-    return [f]
+        for i in range(frame_count):
+            frame = src_sheet.crop((i * 32, 0, (i + 1) * 32, sheet_h))
+            rendered_frame = render_ninja_frame(frame)
+            dst_sheet.paste(rendered_frame, (i * 32, 0))
 
+            # Versão invertida horizontalmente (left)
+            left_frame = rendered_frame.transpose(Image.FLIP_LEFT_RIGHT)
+            dst_sheet_left.paste(left_frame, (i * 32, 0))
 
-def hit_frames():
-    frames = []
-    for i in range(7):
-        f = new_frame()
-        # Recuo para tras
-        recoil = -1 if i < 3 else 0
-        if i % 2 == 0:
-            draw_character(f,
-                           head_y=0,
-                           body_y=0,
-                           left_leg=(1 + recoil, 0),
-                           right_leg=(-1 + recoil, 0),
-                           left_arm=(1 + recoil, 0),
-                           right_arm=(-1 + recoil, 0),
-                           lean=-1,
-                           eyes_closed=(i > 2))
-        else:
-            # Frame de flash branco
-            temp = new_frame()
-            draw_character(temp,
-                           head_y=0,
-                           body_y=0,
-                           left_leg=(1 + recoil, 0),
-                           right_leg=(-1 + recoil, 0),
-                           left_arm=(1 + recoil, 0),
-                           right_arm=(-1 + recoil, 0),
-                           lean=-1,
-                           eyes_closed=(i > 2))
-            for y in range(32):
-                for x in range(32):
-                    if temp[y][x][3] > 0:
-                        f[y][x] = (255, 255, 255, 200)
-        frames.append(f)
-    return frames
+        # Salvar padrão normal
+        dst_path = os.path.join(target_dir, anim_name)
+        dst_sheet.save(dst_path)
 
+        # Salvar versão left
+        base_name, ext = os.path.splitext(anim_name)
+        left_name = f"{base_name.replace(' (32x32)', '')}-left (32x32){ext}"
+        dst_left_path = os.path.join(target_dir, left_name)
+        dst_sheet_left.save(dst_left_path)
 
-def double_jump_frames():
-    frames = []
-    for i in range(6):
-        f = new_frame()
-        t = i / 5.0
-        lean = int((t - 0.5) * 4)
-        draw_character(f,
-                       head_y=-3,
-                       body_y=-3,
-                       left_leg=(-2 + int(t * 4), -2),
-                       right_leg=(2 - int(t * 4), -1),
-                       left_arm=(-1 - int(t * 2), -3),
-                       right_arm=(1 + int(t * 2), -3),
-                       lean=lean)
-        frames.append(f)
-    return frames
+        print(f"✓ {anim_name} ({frame_count} frames) & {left_name} gerados.")
 
-
-def wall_jump_frames():
-    frames = []
-    for i in range(5):
-        f = new_frame()
-        lean = 3 if i < 3 else -1
-        body_off = -1 if i < 3 else -3
-        draw_character(f,
-                       head_y=-1,
-                       body_y=body_off,
-                       left_leg=(0, 0),
-                       right_leg=(3, 0),
-                       left_arm=(0, -3),
-                       right_arm=(3, -3),
-                       lean=lean,
-                       show_wall=True)
-        frames.append(f)
-    return frames
-
-
-# ============================================================================
-# Geracao
-# ============================================================================
-def main():
-    folder = "assets/images/Main Characters/Ninja Dude"
-    os.makedirs(folder, exist_ok=True)
-
-    build_sheet(idle_frames(), "Idle", folder)
-    build_sheet(run_frames(), "Run", folder)
-    build_sheet(jump_frame(), "Jump", folder)
-    build_sheet(fall_frame(), "Fall", folder)
-    build_sheet(hit_frames(), "Hit", folder)
-    build_sheet(double_jump_frames(), "Double Jump", folder)
-    build_sheet(wall_jump_frames(), "Wall Jump", folder)
-
-    print(f"Personagem gerado em: {folder}")
-
+    print(f"\nTodos os spritesheets foram gerados com sucesso em: {target_dir}")
 
 if __name__ == "__main__":
-    main()
+    generate_all()
