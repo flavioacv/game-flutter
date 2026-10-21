@@ -180,6 +180,17 @@ class PixelAdventure extends FlameGame
   bool isFinalizing =
       false; // Flag para indicar se está no tempo de finalização
 
+  // Controle de taxa de rede (Throttle) para evitar OOM e sobrecarga do Firebase
+  double _playerNetworkTimer = 0.0;
+  static const double _playerNetworkInterval = 0.08; // ~12 updates/s (fluido e leve)
+  double _lastSentX = 0;
+  double _lastSentY = 0;
+  String _lastSentState = '';
+  String _lastSentDirection = '';
+
+  double _gameStateNetworkTimer = 0.0;
+  static const double _gameStateNetworkInterval = 1.0; // 1 update/s para o timer do Host
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -187,9 +198,13 @@ class PixelAdventure extends FlameGame
       countdownTime -= dt; // Diminui o tempo
       timerText.text = _formatTime(countdownTime); // Atualiza o texto
 
-      // Update Server if Host
+      // Update Server if Host (Apenas a cada 1 segundo em vez de a cada frame!)
       if (multiplayerService.amIHost) {
-        multiplayerService.updateGameState(countdownTime, currentLevelIndex);
+        _gameStateNetworkTimer += dt;
+        if (_gameStateNetworkTimer >= _gameStateNetworkInterval) {
+          _gameStateNetworkTimer = 0.0;
+          multiplayerService.updateGameState(countdownTime, currentLevelIndex);
+        }
       }
 
       if (countdownTime <= 0) {
@@ -199,7 +214,9 @@ class PixelAdventure extends FlameGame
             // Entra na fase de finalização (15 segundos)
             isFinalizing = true;
             countdownTime = 15.0;
-            // Opcional: Adicionar lógica visual ou sonora aqui para indicar a transição
+            if (multiplayerService.amIHost) {
+              multiplayerService.updateGameState(countdownTime, currentLevelIndex);
+            }
           } else {
             // Fim da fase de finalização
             timerActive = false; // Para o timer ao chegar em 0
@@ -215,16 +232,38 @@ class PixelAdventure extends FlameGame
       }
     }
 
-    // SEND PLAYER UPDATES
+    // SEND PLAYER UPDATES COM THROTTLE E DETECÇÃO DE DELTA
     if (idUser != null && gameStarted) {
-      multiplayerService.updatePlayer(
-        idUser!,
-        player.x,
-        player.y,
-        player.current.toString(),
-        player.direction,
-        player.character,
-      );
+      _playerNetworkTimer += dt;
+      if (_playerNetworkTimer >= _playerNetworkInterval) {
+        _playerNetworkTimer = 0.0;
+
+        final currentX = player.x;
+        final currentY = player.y;
+        final currentState = player.current.toString();
+        final currentDir = player.direction;
+
+        final hasMoved = (currentX - _lastSentX).abs() > 0.5 ||
+            (currentY - _lastSentY).abs() > 0.5;
+        final hasStateChanged = currentState != _lastSentState ||
+            currentDir != _lastSentDirection;
+
+        if (hasMoved || hasStateChanged) {
+          _lastSentX = currentX;
+          _lastSentY = currentY;
+          _lastSentState = currentState;
+          _lastSentDirection = currentDir;
+
+          multiplayerService.updatePlayer(
+            idUser!,
+            currentX,
+            currentY,
+            currentState,
+            currentDir,
+            player.character,
+          );
+        }
+      }
     }
   }
 

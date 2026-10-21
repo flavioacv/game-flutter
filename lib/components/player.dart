@@ -435,23 +435,13 @@ class Player extends SpriteAnimationGroupComponent
                 current = PlayerState.running_left;
               }
 
-              // FEEDBACK VISUAL E LOGS
+              // FEEDBACK VISUAL
               if (kinaResult.isSuperKina) {
                 kinaFeedback =
                     '🚀 SUPER KINA! +${kinaResult.boostX.abs().toStringAsFixed(0)}';
-                print('═══════════════════════════════════');
-                print('🚀 SUPER KINA ATIVADO!');
-                print('   Borda: ${kinaResult.edgeType}');
-                print(
-                    '   Precisão: ${(kinaResult.precisionFactor * 100).toStringAsFixed(1)}%');
-                print('   Boost X: ${kinaResult.boostX.toStringAsFixed(1)}');
-                print('   Boost Y: ${kinaResult.boostY.toStringAsFixed(1)}');
-                print('═══════════════════════════════════');
               } else {
                 kinaFeedback =
                     '⚡ KINA! +${kinaResult.boostX.abs().toStringAsFixed(0)}';
-                print(
-                    '⚡ KINA NORMAL - Boost: ${kinaResult.boostX.toStringAsFixed(1)}');
               }
               kinaFeedbackTimer = 1.5; // Mostra por 1.5 segundos
             }
@@ -496,23 +486,13 @@ class Player extends SpriteAnimationGroupComponent
                 current = PlayerState.running_left;
               }
 
-              // FEEDBACK VISUAL E LOGS
+              // FEEDBACK VISUAL
               if (kinaResult.isSuperKina) {
                 kinaFeedback =
                     '🚀 SUPER KINA! +${kinaResult.boostX.abs().toStringAsFixed(0)}';
-                print('═══════════════════════════════════');
-                print('🚀 SUPER KINA ATIVADO!');
-                print('   Borda: ${kinaResult.edgeType}');
-                print(
-                    '   Precisão: ${(kinaResult.precisionFactor * 100).toStringAsFixed(1)}%');
-                print('   Boost X: ${kinaResult.boostX.toStringAsFixed(1)}');
-                print('   Boost Y: ${kinaResult.boostY.toStringAsFixed(1)}');
-                print('═══════════════════════════════════');
               } else {
                 kinaFeedback =
                     '⚡ KINA! +${kinaResult.boostX.abs().toStringAsFixed(0)}';
-                print(
-                    '⚡ KINA NORMAL - Boost: ${kinaResult.boostX.toStringAsFixed(1)}');
               }
               kinaFeedbackTimer = 1.5; // Mostra por 1.5 segundos
             }

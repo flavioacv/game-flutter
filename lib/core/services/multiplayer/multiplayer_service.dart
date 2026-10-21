@@ -349,10 +349,17 @@ class MultiplayerService {
     return players;
   }
 
+  int _lastPlayerUpdateTime = 0;
+  static const int _minPlayerUpdateIntervalMs = 60; // Max ~16 updates/segundo defensivo
+
   /// Updates the current player's state in the database
   Future<void> updatePlayer(String idPlayer, double x, double y, String state,
       String direction, String character) async {
     if (_roomRef == null) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastPlayerUpdateTime < _minPlayerUpdateIntervalMs) return;
+    _lastPlayerUpdateTime = now;
 
     // Only update specific fields to save bandwidth
     await _roomRef!.child('jogadores/$idPlayer').update({
@@ -373,9 +380,15 @@ class MultiplayerService {
   }
 
   // --- GAME STATE SYNC (Timer / Level) ---
+  int _lastGameStateTime = 0;
+  static const int _minGameStateIntervalMs = 500; // No máximo a cada 500ms
 
   Future<void> updateGameState(double time, int levelIndex) async {
     if (!amIHost || _roomRef == null) return; // Only host updates game state
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastGameStateTime < _minGameStateIntervalMs) return;
+    _lastGameStateTime = now;
 
     await _roomRef!.update({'time': time, 'mapa': levelIndex});
   }
